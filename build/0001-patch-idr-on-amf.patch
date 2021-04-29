@@ -6,8 +6,8 @@ index fb23ed738c..0cbc2a1bd0 100644
              ctx->hwsurfaces_in_queue++;
              frame_ref_storage_buffer->pVtbl->Release(frame_ref_storage_buffer);
          }
-+		
-+		// Override Picture Type for Frame
++
++               // Override Picture Type for Frame
 +        if (avctx->codec->id == AV_CODEC_ID_H264) {
 +            switch (frame->pict_type) {
 +            case AV_PICTURE_TYPE_I:
@@ -28,9 +28,9 @@ index fb23ed738c..0cbc2a1bd0 100644
 +            }
 +            // Keyframe overrides previous assignment.
 +            if (frame->key_frame) {
-+				av_log(ctx, AV_LOG_DEBUG, "IDR,AUD,PPS and SPS set - h264\n");
-+				AMF_ASSIGN_PROPERTY_INT64(res, surface, AMF_VIDEO_ENCODER_INSERT_SPS, 1);
-+				AMF_ASSIGN_PROPERTY_INT64(res, surface, AMF_VIDEO_ENCODER_INSERT_PPS, 1);
++                               av_log(ctx, AV_LOG_DEBUG, "IDR,AUD,PPS and SPS set - h264\n");
++                               AMF_ASSIGN_PROPERTY_INT64(res, surface, AMF_VIDEO_ENCODER_INSERT_SPS, 1);
++                               AMF_ASSIGN_PROPERTY_INT64(res, surface, AMF_VIDEO_ENCODER_INSERT_PPS, 1);
 +                AMF_ASSIGN_PROPERTY_INT64(res, surface, AMF_VIDEO_ENCODER_FORCE_PICTURE_TYPE, AMF_VIDEO_ENCODER_PICTURE_TYPE_IDR);
 +            }
 +        } else if (avctx->codec->id == AV_CODEC_ID_HEVC) {
@@ -53,46 +53,54 @@ index fb23ed738c..0cbc2a1bd0 100644
 +            }
 +            // Keyframe overrides previous assignment.
 +            if (frame->key_frame) {
-+				av_log(ctx, AV_LOG_DEBUG, "IDR,PPS and SPS set - h265\n");
-+				AMF_ASSIGN_PROPERTY_INT64(res, surface, AMF_VIDEO_ENCODER_HEVC_INSERT_HEADER, 1);
++                               av_log(ctx, AV_LOG_DEBUG, "IDR,PPS and SPS set - h265\n");
++                               AMF_ASSIGN_PROPERTY_INT64(res, surface, AMF_VIDEO_ENCODER_HEVC_INSERT_HEADER, 1);
 +                AMF_ASSIGN_PROPERTY_INT64(res, surface, AMF_VIDEO_ENCODER_HEVC_FORCE_PICTURE_TYPE, AMF_VIDEO_ENCODER_HEVC_PICTURE_TYPE_IDR);
 +            }
 +        }
- 
+
          surface->pVtbl->SetPts(surface, frame->pts);
          AMF_ASSIGN_PROPERTY_INT64(res, surface, PTS_PROP, frame->pts);
 diff --git a/libavcodec/amfenc_h264.c b/libavcodec/amfenc_h264.c
-index fe30d7f11d..b3e6f3ee49 100644
+index fe30d7f11d..5433729592 100644
 --- a/libavcodec/amfenc_h264.c
 +++ b/libavcodec/amfenc_h264.c
-@@ -197,8 +197,64 @@ static av_cold int amf_encode_init_h264(AVCodecContext *avctx)
+@@ -193,12 +193,69 @@ static av_cold int amf_encode_init_h264(AVCodecContext *avctx)
+         AMFRatio ratio = AMFConstructRatio(avctx->sample_aspect_ratio.num, avctx->sample_aspect_ratio.den);
+         AMF_ASSIGN_PROPERTY_RATIO(res, ctx->encoder, AMF_VIDEO_ENCODER_ASPECT_RATIO, ratio);
+     }
+-
++    //Color Range is broken on AMF, try to use always partial range
      /// Color Range (Partial/TV/MPEG or Full/PC/JPEG)
-     if (avctx->color_range == AVCOL_RANGE_JPEG) {
+-    if (avctx->color_range == AVCOL_RANGE_JPEG) {
++    /*if (avctx->color_range == AVCOL_RANGE_JPEG) {
          AMF_ASSIGN_PROPERTY_BOOL(res, ctx->encoder, AMF_VIDEO_ENCODER_FULL_RANGE_COLOR, 1);
 +    } else {
-+		AMF_ASSIGN_PROPERTY_BOOL(res, ctx->encoder, AMF_VIDEO_ENCODER_FULL_RANGE_COLOR, 0);
-+	}
++               AMF_ASSIGN_PROPERTY_BOOL(res, ctx->encoder, AMF_VIDEO_ENCODER_FULL_RANGE_COLOR, 0);
++       }*/
++    AMF_ASSIGN_PROPERTY_BOOL(res, ctx->encoder, AMF_VIDEO_ENCODER_FULL_RANGE_COLOR, 0);
 +    // Color space (Color profile of the input surface.)
-+    int isFullRange = avctx->color_range == AVCOL_RANGE_JPEG;
++    int isFullRange = /*avctx->color_range == AVCOL_RANGE_JPEG*/ 0;
 +    int colorSpace = AMF_VIDEO_CONVERTER_COLOR_PROFILE_UNKNOWN;
 +    switch(avctx->colorspace){
 +        case AVCOL_SPC_SMPTE170M:
-+            colorSpace = isFullRange ? AMF_VIDEO_CONVERTER_COLOR_PROFILE_FULL_601 : AMF_VIDEO_CONVERTER_COLOR_PROFILE_601;
++            colorSpace = isFullRange ? AMF_VIDEO_CONVERTER_COLOR_PROFILE_FULL_601 : AMF_VIDEO_CONVERTER_COLOR_PROFILE_601;     
 +            break;
 +        case AVCOL_SPC_BT709:
-+            colorSpace = isFullRange ? AMF_VIDEO_CONVERTER_COLOR_PROFILE_FULL_709 : AMF_VIDEO_CONVERTER_COLOR_PROFILE_709;
++            colorSpace = isFullRange ? AMF_VIDEO_CONVERTER_COLOR_PROFILE_FULL_709 : AMF_VIDEO_CONVERTER_COLOR_PROFILE_709;     
 +            break;
 +        case AVCOL_SPC_BT2020_NCL:
-+            colorSpace = isFullRange ? AMF_VIDEO_CONVERTER_COLOR_PROFILE_FULL_2020 : AMF_VIDEO_CONVERTER_COLOR_PROFILE_2020;
++            colorSpace = isFullRange ? AMF_VIDEO_CONVERTER_COLOR_PROFILE_FULL_2020 : AMF_VIDEO_CONVERTER_COLOR_PROFILE_2020;   
 +            break;
-+    }
+     }
+-
 +    if(colorSpace != AMF_VIDEO_CONVERTER_COLOR_PROFILE_UNKNOWN){
 +        AMF_ASSIGN_PROPERTY_INT64(res,ctx->encoder,AMF_VIDEO_ENCODER_INPUT_COLOR_PROFILE,colorSpace);
-+        AMF_ASSIGN_PROPERTY_INT64(res,ctx->encoder,AMF_VIDEO_ENCODER_OUTPUT_COLOR_PROFILE,colorSpace);
-+        av_log(ctx, AV_LOG_ERROR, "Set Color Space to %d\n",colorSpace);
++        //AMF_ASSIGN_PROPERTY_INT64(res,ctx->encoder,AMF_VIDEO_ENCODER_OUTPUT_COLOR_PROFILE,AMF_VIDEO_CONVERTER_COLOR_PROFILE_709);
++        av_log(ctx, AV_LOG_INFO, "Set Color Space to %d\n",colorSpace);
 +    }
 +    // Color Transfer (Characteristic transfer function of the input surface used to perform the mapping between linear light components and a nonlinear RGB signal.)
-+    int colorTransfer = AMF_COLOR_TRANSFER_CHARACTERISTIC_UNDEFINED;
++    /*int colorTransfer = AMF_COLOR_TRANSFER_CHARACTERISTIC_UNDEFINED;
 +    switch(avctx->color_trc){
 +        case AVCOL_TRC_SMPTE170M:
 +            colorTransfer = AMF_COLOR_TRANSFER_CHARACTERISTIC_SMPTE170M;
@@ -126,8 +134,7 @@ index fe30d7f11d..b3e6f3ee49 100644
 +        AMF_ASSIGN_PROPERTY_INT64(res,ctx->encoder,AMF_VIDEO_ENCODER_INPUT_COLOR_PRIMARIES,colorPrimaries);
 +        AMF_ASSIGN_PROPERTY_INT64(res,ctx->encoder,AMF_VIDEO_ENCODER_OUTPUT_COLOR_PRIMARIES,colorPrimaries);
 +        av_log(ctx, AV_LOG_ERROR, "Set Color Primaries to %d\n",colorPrimaries);
-     }
--
++    }*/
      // autodetect rate control method
      if (ctx->rate_control_mode == AMF_VIDEO_ENCODER_RATE_CONTROL_METHOD_UNKNOWN) {
          if (ctx->qp_i != -1 || ctx->qp_p != -1 || ctx->qp_b != -1) {
