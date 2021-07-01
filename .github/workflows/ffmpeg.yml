@@ -46,6 +46,11 @@ jobs:
         working-directory: media-autobuild_suite
         run: media-autobuild_suite.bat
 
+      - name: Print logs
+        shell: pwsh
+        working-directory: media-autobuild_suite
+        run: cat build/compile.log
+
       - uses: actions/upload-artifact@v1 # Only on distributable builds
         with:
           name: ffmpeg
