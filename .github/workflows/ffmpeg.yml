@@ -49,12 +49,12 @@ jobs:
       - uses: actions/upload-artifact@v1 # Only on distributable builds
         with:
           name: ffmpeg
-          path: local64/bin-video/ffmpeg.exe
+          path: media-autobuild_suite/local64/bin-video/ffmpeg.exe
       - uses: actions/upload-artifact@v1
         with:
           name: ffplay
-          path: local64/bin-video/ffplay.exe
+          path: media-autobuild_suite/local64/bin-video/ffplay.exe
       - uses: actions/upload-artifact@v1
         with:
           name: ffprobe
-          path: local64/bin-video/ffprobe.exe
+          path: media-autobuild_suite/local64/bin-video/ffprobe.exe
