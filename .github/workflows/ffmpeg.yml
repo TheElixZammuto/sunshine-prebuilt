@@ -49,7 +49,7 @@ jobs:
       - name: Print logs
         shell: pwsh
         working-directory: media-autobuild_suite
-        run: cat build/compile.log
+        run: tail -f build/compile.log
 
       - uses: actions/upload-artifact@v1 # Only on distributable builds
         with:
