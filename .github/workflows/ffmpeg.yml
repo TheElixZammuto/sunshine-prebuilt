@@ -1,0 +1,55 @@
+name: ffmpeg build
+
+on:
+  push:
+
+jobs:
+  ffmpeg:
+    name: "mingw-w64-x86_64 ffmpeg build"
+    runs-on: windows-latest
+    timeout-minutes: 960
+    steps:
+      - name: Checkout 
+        uses: actions/checkout@v2
+        with:
+          repository: m-ab-s/media-autobuild_suite
+          path: media-autobuild_suite
+
+      - name: Checkout tools repo
+        uses: actions/checkout@v2
+        with:
+          path: sunshine-prebuilt
+
+      - name: Cache msys64
+        id: cache-msys64
+        uses: actions/cache@v2
+        with:
+          path: msys64/home/CCOM-9020M$/.ccache
+          key: ${{ runner.os }}-msys64
+
+      - name: Copy config files
+        shell: pwsh
+        run: cp sunshine-prebuilt/build/*.* media-autobuild_suite/build/
+
+      - name: Replace do_prompt
+        shell: pwsh
+        working-directory: media-autobuild_suite
+        run: sed -i 's/do_prompt /echo /g' build/media-suite_helper.sh media-autobuild_suite/build/media-suite_compile.sh
+
+      - name: Compile the suite
+        shell: cmd
+        working-directory: media-autobuild_suite
+        run: media-autobuild_suite.bat
+
+      - uses: actions/upload-artifact@v1 # Only on distributable builds
+        with:
+          name: ffmpeg
+          path: local64/bin-video/ffmpeg.exe
+      - uses: actions/upload-artifact@v1
+        with:
+          name: ffplay
+          path: local64/bin-video/ffplay.exe
+      - uses: actions/upload-artifact@v1
+        with:
+          name: ffprobe
+          path: local64/bin-video/ffprobe.exe
