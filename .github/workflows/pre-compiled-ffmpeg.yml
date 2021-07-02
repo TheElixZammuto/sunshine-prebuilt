@@ -1,0 +1,91 @@
+name: Pre Compiled ffmpeg
+
+on:
+  push:
+
+jobs:
+  build:
+    name: "Build"
+    runs-on: windows-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout sunshine-prebuilt
+        uses: actions/checkout@v2
+
+      - name: Checkout media-autobuild_suite
+        uses: actions/checkout@v2
+        with:
+          repository: m-ab-s/media-autobuild_suite
+          path: media-autobuild_suite
+
+      - name: Cache msys64
+        id: cache-msys64
+        uses: actions/cache@v2
+        with:
+          path: media-autobuild_suite/msys64
+          key: ffmpeg-msys64
+
+      - name: Copy sunshine-prebuilt config files
+        shell: pwsh
+        run: cp build/*.* media-autobuild_suite/build/
+
+      - name: Replace do_prompt
+        shell: pwsh
+        working-directory: media-autobuild_suite
+        run: sed -i 's/do_prompt /echo /g' build/media-suite_helper.sh build/media-suite_compile.sh
+      
+      - name: Compile the suite
+        shell: cmd
+        working-directory: media-autobuild_suite
+        run: media-autobuild_suite.bat
+
+      - name: Create pre-compiled artifact
+        shell: cmd
+        run: scripts\create-pre-compiled.bat
+
+      - name: Upload pre-compiled artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: pre-compiled
+          path: pre-compiled/
+  
+  release:
+    name: "Release"
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download pre-compiled artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: pre-compiled
+          path: pre-compiled/
+      
+      - name: Create pre-compiled.zip
+        shell: pwsh
+        run: Compress-Archive -Path pre-compiled\* -DestinationPath pre-compiled.zip
+
+      - name: Create Release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          body: |
+            Prebuilt ffmpeg libs for sunshine
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: ./pre-compiled.zip
+          asset_name: pre-compiled.zip
+          asset_content_type: application/zip
