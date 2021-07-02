@@ -24,7 +24,7 @@ jobs:
         id: cache-msys64
         uses: actions/cache@v2
         with:
-          path: msys64/home/CCOM-9020M$/.ccache
+          path: msys64
           key: ${{ runner.os }}-msys64
 
       - name: Copy sunshine-prebuilt config files
@@ -36,20 +36,10 @@ jobs:
         working-directory: media-autobuild_suite
         run: sed -i 's/do_prompt /echo /g' build/media-suite_helper.sh build/media-suite_compile.sh
       
-      - name: List media-autobuild_suite contents
-        shell: pwsh
-        working-directory: media-autobuild_suite
-        run: ls -l .
-
       - name: Compile the suite
         shell: cmd
         working-directory: media-autobuild_suite
         run: media-autobuild_suite.bat
-
-      - name: Print compile logs
-        shell: pwsh
-        working-directory: media-autobuild_suite
-        run: cat build/compile.log
 
       - uses: actions/upload-artifact@v1 # Only on distributable builds
         with:
