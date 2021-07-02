@@ -9,27 +9,25 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 960
     steps:
+      - name: Checkout sunshine-prebuilt
+        uses: actions/checkout@v2
+
       - name: Checkout media-autobuild_suite
         uses: actions/checkout@v2
         with:
           repository: m-ab-s/media-autobuild_suite
           path: media-autobuild_suite
 
-      - name: Checkout sunshine-prebuilt
-        uses: actions/checkout@v2
-        with:
-          path: sunshine-prebuilt
-
       - name: Cache msys64
         id: cache-msys64
         uses: actions/cache@v2
         with:
-          path: msys64
+          path: media-autobuild_suite/msys64
           key: ${{ runner.os }}-msys64
 
       - name: Copy sunshine-prebuilt config files
         shell: pwsh
-        run: cp sunshine-prebuilt/build/*.* media-autobuild_suite/build/
+        run: cp build/*.* media-autobuild_suite/build/
 
       - name: Replace do_prompt
         shell: pwsh
