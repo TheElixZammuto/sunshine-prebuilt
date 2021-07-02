@@ -46,20 +46,12 @@ jobs:
         working-directory: media-autobuild_suite
         run: media-autobuild_suite.bat
 
-      - name: Print logs
+      - name: Print compile logs
         shell: pwsh
         working-directory: media-autobuild_suite
-        run: tail -f build/compile.log
+        run: cat build/compile.log
 
       - uses: actions/upload-artifact@v1 # Only on distributable builds
         with:
           name: ffmpeg
           path: media-autobuild_suite/local64/bin-video/ffmpeg.exe
-      - uses: actions/upload-artifact@v1
-        with:
-          name: ffplay
-          path: media-autobuild_suite/local64/bin-video/ffplay.exe
-      - uses: actions/upload-artifact@v1
-        with:
-          name: ffprobe
-          path: media-autobuild_suite/local64/bin-video/ffprobe.exe
