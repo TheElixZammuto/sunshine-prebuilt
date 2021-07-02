@@ -38,8 +38,3 @@ jobs:
         shell: cmd
         working-directory: media-autobuild_suite
         run: media-autobuild_suite.bat
-
-      - uses: actions/upload-artifact@v1 # Only on distributable builds
-        with:
-          name: ffmpeg
-          path: media-autobuild_suite/local64/bin-video/ffmpeg.exe
